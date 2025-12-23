@@ -4,7 +4,7 @@ from schemas import MedicalNoteExtraction
 from anthropic import Anthropic
 from openai import OpenAI
 
-load_dotenv()
+load_dotenv(override=True)
 
 json_schema = json.dumps(MedicalNoteExtraction.model_json_schema(), indent=2)
 
