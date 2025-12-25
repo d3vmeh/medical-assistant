@@ -1,5 +1,6 @@
 import json
 import os
+
 from dotenv import load_dotenv
 from schemas import MedicalNoteExtraction
 from anthropic import Anthropic
@@ -12,6 +13,10 @@ def get_notes():
         with open(f"test_data/{filename}",'r') as file:
             notes.append(file.read().strip())
     return notes
+
+def append_jsonl(path: str, record: dict):
+    with open(path, "a", encoding="utf-8") as file:
+        file.write(json.dumps(record) + "\n")
 
 notes = get_notes()
 
@@ -66,3 +71,18 @@ def extract_note(note_text: str, source_id: str):
 
 extraction = extract_note(notes[0], "note-001")
 print(extraction.model_dump_json(indent=2))
+
+i = 1
+for n in notes:
+    source_id = f"note_{i}"
+
+    extraction = extract_note(n,source_id)
+    i += 1
+
+    record = {
+    "source_id": source_id,
+    "raw_note": n,
+    "extraction": extraction.model_dump()
+}
+    append_jsonl("notes.jsonl", record)
+
