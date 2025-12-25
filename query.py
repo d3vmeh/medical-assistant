@@ -1,8 +1,20 @@
 import json
+import os
 from dotenv import load_dotenv
 from schemas import MedicalNoteExtraction
 from anthropic import Anthropic
 from openai import OpenAI
+
+
+def get_notes():
+    notes = []
+    for filename in os.listdir("test_data"):
+        with open(f"test_data/{filename}",'r') as file:
+            notes.append(file.read().strip())
+    return notes
+
+notes = get_notes()
+
 
 load_dotenv(override=True)
 
@@ -51,10 +63,6 @@ def extract_note(note_text: str, source_id: str):
 
     return response.output_parsed
 
-note = (
-        "67M with hx CHF. Worsening dyspnea x2 days. BNP 1200. "
-        "On furosemide 40 mg daily. Allergies: penicillin. "
-        "Plan: increase diuretics, repeat BMP tomorrow."
-)
-extraction = extract_note(note, "note-001")
+
+extraction = extract_note(notes[0], "note-001")
 print(extraction.model_dump_json(indent=2))
