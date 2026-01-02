@@ -3,19 +3,9 @@ import os
 
 from dotenv import load_dotenv
 from schemas import MedicalNoteExtraction
+from json_tools import append_jsonl
 from openai import OpenAI
 
-
-def get_notes():
-    notes = []
-    for filename in os.listdir("test_data"):
-        with open(f"test_data/{filename}",'r') as file:
-            notes.append(file.read().strip())
-    return notes
-
-def append_jsonl(path: str, record: dict):
-    with open(path, "a", encoding="utf-8") as file:
-        file.write(json.dumps(record) + "\n")
 
 
 # Converting abbreviations to standard terms
@@ -36,7 +26,7 @@ def standardize_extraction(extraction: MedicalNoteExtraction):
         "lasix": "furosemide",
         "glucophage": "metformin"
     }
-    
+
     for condition in extraction.conditions:
         condition.name = standardize_names(condition.name, standardize_conditions)
 
@@ -93,12 +83,12 @@ def extract_note(note_text: str, source_id: str):
 
     return response.output_parsed
 
-def create_record(note_text: str, source_id: str):
+def create_record(note_text: str, source_id: str, path: str):
     extraction = standardize_extraction(extract_note(note_text, source_id))
     record ={
         "source_id": source_id,
         "raw_note": note_text,
         "extraction": extraction.model_dump()
     }
-    append_jsonl("notes.jsonl", record)
+    append_jsonl(path, record)
     return record

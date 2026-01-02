@@ -1,6 +1,7 @@
 __pycache__/
 prompts/
 test_data/
+eval_data/
 venv/
 
 .env
