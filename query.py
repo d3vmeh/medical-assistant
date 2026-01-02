@@ -18,6 +18,35 @@ def append_jsonl(path: str, record: dict):
     with open(path, "a", encoding="utf-8") as file:
         file.write(json.dumps(record) + "\n")
 
+
+
+# Converting abbreviations to standard terms
+
+def standardize_names(name: str, mappings: dict):
+    key = name.lower().strip()
+    return mappings.get(key, name)
+
+def standardize_extraction(extraction: MedicalNoteExtraction):
+    for condition in extraction.conditions:
+        condition.name = standardize_names(condition.name, standardize_conditions)
+
+    for medication in extraction.medications:
+        medication.name = standardize_names(medication.name, standardize_meds)
+    
+    return extraction
+
+standardize_conditions = {
+    "chf": "congestive heart failure",
+    "hf": "heart failure",
+    "sob": "shortness of breath",
+    "htn": "hypertension"
+}
+
+standardize_meds = {
+    "lasix": "furosemide",
+    "glucophage": "metformin"
+}
+
 notes = get_notes()
 
 
@@ -68,21 +97,18 @@ def extract_note(note_text: str, source_id: str):
 
     return response.output_parsed
 
-
-extraction = extract_note(notes[0], "note-001")
-print(extraction.model_dump_json(indent=2))
-
 i = 1
 for n in notes:
     source_id = f"note_{i}"
 
-    extraction = extract_note(n,source_id)
+    extraction = standardize_extraction(extract_note(n,source_id))
     i += 1
 
     record = {
     "source_id": source_id,
     "raw_note": n,
     "extraction": extraction.model_dump()
-}
+    }
+    
     append_jsonl("notes.jsonl", record)
 
