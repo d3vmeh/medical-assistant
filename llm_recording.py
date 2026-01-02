@@ -19,8 +19,11 @@ def standardize_extraction(extraction: MedicalNoteExtraction):
     "chf": "congestive heart failure",
     "hf": "heart failure",
     "sob": "shortness of breath",
-    "htn": "hypertension"
+    "htn": "hypertension",
+    "t2dm": "type 2 diabetes mellitus",
+    "pneumonia": "pneumonia",
     }
+
 
     standardize_meds = {
         "lasix": "furosemide",
@@ -92,3 +95,4 @@ def create_record(note_text: str, source_id: str, path: str):
     }
     append_jsonl(path, record)
     return record
+    

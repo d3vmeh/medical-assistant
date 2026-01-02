@@ -20,3 +20,11 @@ def get_notes_from_jsonl(path: str):
 
     print(notes)
     return notes
+
+def load_jsonl_to_dict(path: str, key_field: str = "source_id"):
+    records = {}
+    with open(path, "r", encoding="utf-8") as file:
+        for line in file:
+            record = json.loads(line)
+            records[record[key_field]] = record
+    return records
