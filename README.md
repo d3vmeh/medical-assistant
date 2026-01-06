@@ -27,8 +27,3 @@ The focus is on **information extraction**, not diagnosis or clinical decision-m
 
 ### Storage
 - Outputs saved in `.jsonl` format
-
----
-
-## Project Structure
-

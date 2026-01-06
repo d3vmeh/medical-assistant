@@ -54,6 +54,7 @@ def predicted_sets(assistant_record):
         # Standardizing abbreviations 
         predicted_conditions.add(condition_map.get(name, name))
 
+    # Standardizing and mapping the data
     predicted_meds = set()
     for med in extraction.get("medications", []):
         name = normalize_str(med["name"])
@@ -73,6 +74,9 @@ def eval_sets(eval_record: dict) -> Tuple[Set[str], Set[str], Set[str]]:
       eval_record["medications"] (list[str])
       eval_record["allergies"] (list[str])
     """
+
+    # Getting all the data from the eval set
+    
     eval_conditions = standardize_set(
         eval_record.get("conditions", []),
         condition_map
@@ -91,6 +95,11 @@ def eval_sets(eval_record: dict) -> Tuple[Set[str], Set[str], Set[str]]:
     return eval_conditions, eval_meds, eval_allergies
 
 def score(prediction: set, original_set: set):
+    """
+    Precision: how often the predicted items are correct
+    Recall: how many real items the model found (did it find everything it should have in the note)
+    """
+    
     tp = len(prediction & original_set) # True positive (overlap)
     fp = len(prediction - original_set) # False positive (hallucinations)
     fn = len(original_set - prediction) # False negative (LLM missed these)
@@ -116,18 +125,22 @@ def add_totals(totals: dict, key: str, tp: int, fp: int, fn: int):
 def totals_to_metrics(tp: int, fp: int, fn: int) -> Tuple[float, float, float]:
     precision = 1.0 if (tp + fp) == 0 else tp / (tp + fp)
     recall = 1.0 if (tp + fn) == 0 else tp / (tp + fn)
+
+    # A "score" based on the precision and recall found
     f1 = 0.0 if (precision + recall) == 0 else 2 * precision * recall / (precision + recall)
     return precision, recall, f1
 
-# Clearing the file, regenerate
-# open(assistant_path, 'w')
+def generate_assistant_data():
+    i = 1
+    for note_text in get_notes_text():
+        source_id = f"note_{i}"
+        create_record(note_text, source_id, assistant_path)
+        print(f"Created record for {source_id}")
+        i += 1
 
-i = 1
-for note_text in get_notes_text():
-    source_id = f"note_{i}"
-    create_record(note_text, source_id, assistant_path)
-    print(f"Created record for {source_id}")
-    i += 1
+# Clearing the file to regenerate data from the LLM
+# open(assistant_path, 'w')
+# generate_assistant_data()
 
 assistant_predictions = load_jsonl_to_dict(assistant_path, "source_id")
 eval_data = load_jsonl_to_dict(eval_path, "source_id")
@@ -142,21 +155,23 @@ totals = {
 
 # In case the prediction wasn't generated for a note
 missing_predictions = []
-# In case the predicted note doesn't have a label
+
+# In case the predicted note doesn't have a corresponding label
 missing_evaluations = []
 
 # sid - source id, e - eval record
 for sid, e in eval_data.items():
-    # Skipping comparison if nothing generated
+    # Skipping comparison if nothing generated, keep note of which were missing
     if sid not in assistant_predictions:
         missing_predictions.append(sid)
         continue
 
+    # Conversion into sets
     p = assistant_predictions[sid]
-
     p_conds, p_meds, p_all = predicted_sets(p)
     e_conds, e_meds, e_all = eval_sets(e)
 
+    # Scoring
     tp, fp, fn, prec, rec = score(p_conds, e_conds)
     add_totals(totals, "conditions", tp, fp, fn)
 
@@ -166,12 +181,13 @@ for sid, e in eval_data.items():
     tp, fp, fn, prec, rec = score(p_all, e_all)
     add_totals(totals, "allergies", tp, fp, fn)
 
+# Tracking which eval data was missing
 for sid in assistant_predictions.keys():
     if sid not in eval_data:
         missing_evaluations.append(sid)
 
 print("=== EVALUATION SUMMARY ===")
-
+# Showing precision & recall for each category
 for k in ["conditions", "meds", "allergies"]:
     tp = totals[k]["tp"]
     fp = totals[k]["fp"]
